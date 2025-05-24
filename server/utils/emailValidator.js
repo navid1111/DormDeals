@@ -3,10 +3,18 @@ const University = require('../models/University');
 // Validate university email domain
 const validateUniversityEmail = async (email) => {
   try {
+    if (!email) {
+      return { isValid: false, university: null };
+    }
+    
     const domain = email.split('@')[1];
+    if (!domain) {
+      return { isValid: false, university: null };
+    }
+
     const university = await University.findOne({ 
-      emailDomain: domain.toLowerCase(),
-      isActive: true 
+      domains: { $in: [domain.toLowerCase()] },
+      active: true 
     });
     
     return {

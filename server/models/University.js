@@ -6,25 +6,26 @@ const universitySchema = new mongoose.Schema({
     required: [true, 'University name is required'],
     trim: true
   },
-  code: {
+  shortName: {
     type: String,
-    required: [true, 'University code is required'],
-    unique: true,
-    uppercase: true,
+    required: [true, 'University short name is required'],
     trim: true
   },
-  emailDomain: {
-    type: String,
-    required: [true, 'Email domain is required'],
-    unique: true,
-    lowercase: true,
-    trim: true
+  domains: {
+    type: [String],
+    required: [true, 'Email domains are required'],
+    validate: [arr => Array.isArray(arr) && arr.length > 0, 'At least one domain is required']
   },
   location: {
     city: String,
+    state: String,
     country: String
   },
-  isActive: {
+  verified: {
+    type: Boolean,
+    default: false
+  },
+  active: {
     type: Boolean,
     default: true
   }
