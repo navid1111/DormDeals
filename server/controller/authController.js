@@ -1,7 +1,7 @@
 const User = require('../models/Users');
 const University = require('../models/University');
 const { validateUniversityEmail } = require('../utils/emailValidator');
-const { generateVerificationToken } = require('../utils/generateToken');
+const { generateVerificationToken, generateJWTToken } = require('../utils/generateToken');
 const { sendVerificationEmail, sendWelcomeEmail } = require('../utils/sendEmail');
 
 // Register new user
@@ -141,7 +141,7 @@ const login = async (req, res) => {
     }
 
     // Generate token
-    const token = user.getSignedJwtToken();
+    const token = await generateJWTToken(user._id);
 
     res.status(200).json({
       success: true,

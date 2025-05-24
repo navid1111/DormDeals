@@ -2,6 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const authRoutes = require('./routes/auth');
+const userRoutes = require('./routes/users');
 
 // Load environment variables
 dotenv.config();
@@ -26,6 +27,7 @@ mongoose.connect(process.env.MONGODB_URI)
 
 // Define Routes
 app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/users', userRoutes);
 
 app.get('/', (req, res) => {
   res.send('Hello, Express!');
