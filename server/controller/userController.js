@@ -1,4 +1,4 @@
-const User = require('../models/User');
+const User = require('../models/Users');
 const University = require('../models/University');
 
 // Get user profile

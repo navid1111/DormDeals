@@ -5,7 +5,8 @@ const {
   verifyEmail,
   resendVerificationEmail,
   getMe,
-  logout
+  logout,
+  adminLogin
 } = require('../controller/authController');
 const { protect } = require('../middleware/auth');
 const { validateRegistration, validateLogin } = require('../middleware/validation');
@@ -18,6 +19,7 @@ router.post('/register', register);
 router.post('/login', validateLogin, login);
 router.get('/verify-email/:token', verifyEmail);
 router.post('/resend-verification', resendVerificationEmail);
+router.post('/admin-login', adminLogin);
 
 // Protected routes
 router.get('/me', protect, getMe);

@@ -51,10 +51,10 @@ const protect = async (req, res, next) => {
 // Require email verification
 const requireEmailVerification = (req, res, next) => {
   if (!req.user.isEmailVerified) {
-    return res.status(403).json({
-      success: false,
-      message: 'Please verify your email address to access this feature'
-    });
+    // return res.status(403).json({
+    //   success: false,
+    //   message: 'Please verify your email address to access this feature'
+    // });
   }
   next();
 };
