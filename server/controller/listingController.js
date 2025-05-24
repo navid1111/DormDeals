@@ -8,12 +8,9 @@ const createListing = async (req, res) => {
     if (!req.user || !req.user.id) {
       return res.status(401).json({
         success: false,
-        message: 'User not found or not authenticated'
+        message: 'Not authorized'
       });
     }
-    
-    // Check if req.body exists and has required fields
-
     
     // Validate required fields before attempting to create
     const requiredFields = ['title', 'description', 'category', 'listingType', 'pricingType'];
@@ -47,21 +44,41 @@ const createListing = async (req, res) => {
     req.body.university = req.user.university;
     
     // Set default status
-    req.body.status = 'pending';
+    req.body.status = 'active'; // Or 'pending' if you want to moderate first
     
-    // Create listing
+    // Create the listing
     const listing = await Listing.create(req.body);
+    
+    // Upload images if they were included in the request
+    if (req.files && req.files.length > 0) {
+      const uploadPromises = [];
+      
+      // Upload each image to Cloudinary
+      for (const file of req.files) {
+        const uploadPromise = uploadImage(file, `dormdeals/listings/${listing._id}`);
+        uploadPromises.push(uploadPromise);
+      }
+      
+      // Wait for all uploads to complete
+      const uploadedImages = await Promise.all(uploadPromises);
+      
+      // Extract the URLs from the results
+      const imageUrls = uploadedImages.map(image => image.url);
+      
+      // Update the listing with image URLs
+      listing.images = imageUrls;
+      await listing.save();
+    }
     
     res.status(201).json({
       success: true,
-      message: 'Listing created successfully',
       data: listing
     });
   } catch (error) {
     console.error('Create listing error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error during listing creation',
+      message: 'Server error creating listing',
       error: error.message
     });
   }
