@@ -133,11 +133,11 @@ const login = async (req, res) => {
 
     // Check if email is verified
     if (!user.isEmailVerified) {
-      return res.status(401).json({
-        success: false,
-        message: 'Please verify your email before logging in',
-        needsVerification: true
-      });
+    //   return res.status(401).json({
+    //     success: false,
+    //     message: 'Please verify your email before logging in',
+    //     needsVerification: true
+    //   });
     }
 
     // Generate token
