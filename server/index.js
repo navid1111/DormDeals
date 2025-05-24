@@ -4,7 +4,9 @@ const dotenv = require('dotenv');
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
 const listingRoutes = require('./routes/listings');
-
+const moderationRoutes = require('./routes/moderation');
+const meetupLocationRoutes = require('./routes/meetupLocations');
+const meetupRoutes = require('./routes/meetups');
 // Load environment variables
 dotenv.config();
 
@@ -30,7 +32,9 @@ mongoose.connect(process.env.MONGODB_URI)
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/listings', listingRoutes);
-
+app.use('/api/v1/moderation', moderationRoutes);
+app.use('/api/v1/meetup-locations', meetupLocationRoutes);
+app.use('/api/v1/meetups', meetupRoutes);
 app.get('/', (req, res) => {
   res.send('Hello, Express!');
 });

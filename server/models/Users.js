@@ -29,7 +29,16 @@ const userSchema = new mongoose.Schema({
     minlength: [8, 'Password must be at least 8 characters'],
     select: false
   },
-  
+    role: {
+    type: String,
+    enum: ['user', 'admin', 'university-admin'],
+    default: 'user'
+  },
+  adminUniversity: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'University',
+    default: null
+  },
   // Private Information (Admin access only)
   phoneNumber: {
     type: String,

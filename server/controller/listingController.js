@@ -4,9 +4,50 @@ const User = require('../models/Users');
 // Create new listing
 const createListing = async (req, res) => {
   try {
+    // Check if user is authenticated
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({
+        success: false,
+        message: 'User not found or not authenticated'
+      });
+    }
+    
+    // Check if req.body exists and has required fields
+
+    
+    // Validate required fields before attempting to create
+    const requiredFields = ['title', 'description', 'category', 'listingType', 'pricingType'];
+    const missingFields = requiredFields.filter(field => !req.body[field]);
+    
+    if (missingFields.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Missing required fields: ${missingFields.join(', ')}`
+      });
+    }
+    
+    // Check price if not free
+    if (req.body.pricingType !== 'free' && !req.body.price) {
+      return res.status(400).json({
+        success: false,
+        message: 'Price is required for non-free listings'
+      });
+    }
+    
+    // Check condition if item
+    if (req.body.listingType === 'item' && !req.body.condition) {
+      return res.status(400).json({
+        success: false,
+        message: 'Condition is required for item listings'
+      });
+    }
+    
     // Add user and university to request body
     req.body.owner = req.user.id;
     req.body.university = req.user.university;
+    
+    // Set default status
+    req.body.status = 'pending';
     
     // Create listing
     const listing = await Listing.create(req.body);
@@ -20,7 +61,8 @@ const createListing = async (req, res) => {
     console.error('Create listing error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error during listing creation'
+      message: 'Server error during listing creation',
+      error: error.message
     });
   }
 };

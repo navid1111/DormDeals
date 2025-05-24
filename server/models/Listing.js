@@ -51,8 +51,16 @@ const ListingSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['active', 'pending', 'sold', 'deleted', 'expired'],
+    enum: ['pending', 'active', 'rejected', 'sold', 'deleted', 'expired'],
     default: 'pending'
+  },
+  moderationData: {
+    moderatedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    moderatedAt: Date,
+    message: String
   },
   owner: {
     type: mongoose.Schema.Types.ObjectId,
