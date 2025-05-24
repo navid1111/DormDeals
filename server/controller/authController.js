@@ -293,6 +293,76 @@ const logout = async (req, res) => {
   });
 };
 
+// Admin Login
+const adminLogin = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // Validate request
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide email and password'
+      });
+    }
+
+    // Check if user exists and include the password field which is normally excluded
+    const user = await User.findOne({ email }).select('+password');
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid credentials'
+      });
+    }
+
+    // Check if user is admin
+    if (user.role !== 'admin' && user.role !== 'university-admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Admin privileges required.'
+      });
+    }
+
+    // Check if password matches
+    const isMatch = await user.matchPassword(password);
+
+    if (!isMatch) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid credentials'
+      });
+    }
+
+    // Generate JWT Token
+    const token = generateJWTToken(user._id);
+
+    // Update last login
+    user.lastLogin = Date.now();
+    await user.save({ validateBeforeSave: false });
+
+    // Send response
+    res.status(200).json({
+      success: true,
+      token,
+      user: {
+        _id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        role: user.role,
+        adminUniversity: user.adminUniversity,
+        profilePicture: user.profilePicture
+      }
+    });
+  } catch (error) {
+    console.error('Admin login error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error during login'
+    });
+  }
+};
 
 module.exports = {
   register,
@@ -300,5 +370,6 @@ module.exports = {
   verifyEmail,
   resendVerificationEmail,
   getMe,
-  logout
+  logout,
+  adminLogin
 };
