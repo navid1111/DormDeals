@@ -9,7 +9,8 @@ const moderationRoutes = require('./routes/moderation');
 const meetupLocationRoutes = require('./routes/meetupLocations');
 const meetupRoutes = require('./routes/meetups');
 const universityRoutes = require('./routes/universities');
-
+const groqRoute = require('./routes/groqRoute');
+const listingAssistantRoute = require('./routes/listingAssistantRoute');
 // Load environment variables
 dotenv.config();
 
@@ -46,7 +47,8 @@ app.use('/api/v1/moderation', moderationRoutes);
 app.use('/api/v1/meetup-locations', meetupLocationRoutes);
 app.use('/api/v1/meetups', meetupRoutes);
 app.use('/api/v1/universities', universityRoutes); // Add the university routes
-
+app.use('/api/v1/groq', groqRoute); // Add Groq routes
+app.use('/api/v1/listing-assistant', listingAssistantRoute); // Add listing assistant routes
 app.get('/', (req, res) => {
   res.send('Hello, Express!');
 });

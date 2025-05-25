@@ -1,5 +1,6 @@
 const Listing = require('../models/Listing');
 const User = require('../models/Users');
+const { uploadImage } = require('../utils/cloudinary');
 
 // Create new listing
 const createListing = async (req, res) => {
@@ -8,12 +9,9 @@ const createListing = async (req, res) => {
     if (!req.user || !req.user.id) {
       return res.status(401).json({
         success: false,
-        message: 'User not found or not authenticated'
+        message: 'Not authorized'
       });
     }
-    
-    // Check if req.body exists and has required fields
-
     
     // Validate required fields before attempting to create
     const requiredFields = ['title', 'description', 'category', 'listingType', 'pricingType'];
@@ -41,27 +39,110 @@ const createListing = async (req, res) => {
         message: 'Condition is required for item listings'
       });
     }
+
+    // CRITICAL FIX: Upload images FIRST before creating the listing
+    let imageUrls = [];
     
-    // Add user and university to request body
-    req.body.owner = req.user.id;
-    req.body.university = req.user.university;
+    if (req.files && req.files.length > 0) {
+      try {
+        console.log(`Starting upload of ${req.files.length} images...`);
+        
+        // Create a temporary folder name for this upload session
+        const tempFolderId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const uploadFolder = `dormdeals/listings/${tempFolderId}`;
+        
+        const uploadPromises = req.files.map(async (file, index) => {
+          console.log(`Uploading image ${index + 1}/${req.files.length}...`);
+          
+          // Validate file before upload
+          if (!file.buffer) {
+            throw new Error(`File ${index + 1} has no buffer data`);
+          }
+          
+          // Upload to Cloudinary with retry logic
+          let uploadAttempts = 0;
+          const maxAttempts = 3;
+          
+          while (uploadAttempts < maxAttempts) {
+            try {
+              const result = await uploadImage(file, uploadFolder);
+              console.log(`Successfully uploaded image ${index + 1}: ${result.url}`);
+              return result;
+            } catch (uploadError) {
+              uploadAttempts++;
+              console.error(`Upload attempt ${uploadAttempts} failed for image ${index + 1}:`, uploadError.message);
+              
+              if (uploadAttempts >= maxAttempts) {
+                throw new Error(`Failed to upload image ${index + 1} after ${maxAttempts} attempts: ${uploadError.message}`);
+              }
+              
+              // Wait 1 second before retry
+              await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+          }
+        });
+        
+        // Wait for ALL images to upload successfully
+        const uploadedImages = await Promise.all(uploadPromises);
+        imageUrls = uploadedImages.map(image => image.url);
+        
+        console.log(`All ${imageUrls.length} images uploaded successfully`);
+        
+      } catch (imageUploadError) {
+        console.error('Image upload failed:', imageUploadError);
+        
+        // Return error immediately - don't create listing if images fail
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to upload images. Listing not created.',
+          error: imageUploadError.message
+        });
+      }
+    }
+
+    // Only create listing AFTER successful image upload (or if no images)
+    const listingData = {
+      ...req.body,
+      owner: req.user.id,
+      university: req.user.university,
+      status: 'active',
+      images: imageUrls // Add uploaded image URLs
+    };
     
-    // Set default status
-    req.body.status = 'pending';
+    console.log('Creating listing with image URLs:', imageUrls);
     
-    // Create listing
-    const listing = await Listing.create(req.body);
+    // Create the listing in database
+    const listing = await Listing.create(listingData);
+    
+    console.log(`Listing created successfully with ID: ${listing._id}`);
+    
+    // If we used a temporary folder, rename it to use the actual listing ID
+    if (imageUrls.length > 0 && imageUrls[0].includes('temp_')) {
+      try {
+        // Note: This would require additional Cloudinary API calls to rename/move files
+        // For now, the temp folder approach works fine
+        console.log('Images stored in temporary folder - consider implementing folder rename');
+      } catch (renameError) {
+        console.warn('Could not rename image folder:', renameError.message);
+        // Non-critical error - listing is still created successfully
+      }
+    }
     
     res.status(201).json({
       success: true,
-      message: 'Listing created successfully',
-      data: listing
+      data: listing,
+      message: `Listing created successfully${imageUrls.length > 0 ? ` with ${imageUrls.length} images` : ''}`
     });
+    
   } catch (error) {
     console.error('Create listing error:', error);
+    
+    // If listing creation fails after images were uploaded, we should ideally clean up
+    // the uploaded images, but that would require tracking them
+    
     res.status(500).json({
       success: false,
-      message: 'Server error during listing creation',
+      message: 'Server error creating listing',
       error: error.message
     });
   }
