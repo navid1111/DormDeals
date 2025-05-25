@@ -1,8 +1,10 @@
 'use client';
 
-import ProtectedRoute from '@/app/components/ProtectedRoute';
-import { useAuth } from '@/app/context/AuthContext';
 import { useEffect, useState } from 'react';
+// import { blistingService } from '../../../services/moderateService';
+import { moderationService } from '../../../services/moderateService';
+import ProtectedRoute from '../../components/ProtectedRoute';
+import { useAuth } from '../../context/AuthContext';
 
 export default function AdminDashboard() {
   const { user, token } = useAuth();
@@ -21,39 +23,34 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        // This would be implemented on your backend
-        const response = await fetch('http://localhost:3001/api/v1/admin/dashboard', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+        setLoading(true);
+
+        // Fetch pending listings and count using moderationService
+        const [pendingListingsRes, pendingCount] = await Promise.all([
+          moderationService.getPendingListings(),
+          moderationService.getPendingListingsCount()
+        ]);
+
+        // No recentReports in moderationService, so leave as empty or implement if needed
+        setStats({
+          pendingListings: pendingCount,
+          openReports: 0, // No reports in moderationService
+          pendingVerifications: 0,
+          totalUsers: isUniversityAdmin ? 230 : 1450 // Replace with real data if available
         });
 
-        // For now we'll use mock data
-        // In real implementation, you would use data from the response
-        setTimeout(() => {
-          // Mock data
-          setStats({
-            pendingListings: 8,
-            openReports: 4,
-            pendingVerifications: 12,
-            totalUsers: isUniversityAdmin ? 230 : 1450
-          });
+        setPendingListings(
+          pendingListingsRes.data.map(l => ({
+            id: l._id,
+            title: l.title,
+            price: l.price,
+            date: new Date(l.createdAt).toISOString().split('T')[0]
+          }))
+        );
 
-          setRecentReports([
-            { id: 1, type: 'Listing', reason: 'Inappropriate content', date: '2023-05-20' },
-            { id: 2, type: 'User', reason: 'Fake profile', date: '2023-05-19' },
-            { id: 3, type: 'Listing', reason: 'Price too high', date: '2023-05-18' },
-          ]);
+        setRecentReports([]); // No recentReports in moderationService
 
-          setPendingListings([
-            { id: 1, title: 'Study Desk', price: 75, date: '2023-05-20' },
-            { id: 2, title: 'Engineering Books', price: 120, date: '2023-05-19' },
-            { id: 3, title: 'Dorm Refrigerator', price: 180, date: '2023-05-18' },
-          ]);
-
-          setLoading(false);
-        }, 1000);
-
+        setLoading(false);
       } catch (error) {
         console.error('Failed to fetch dashboard data:', error);
         setLoading(false);
@@ -64,6 +61,22 @@ export default function AdminDashboard() {
       fetchDashboardData();
     }
   }, [token, isUniversityAdmin]);
+
+  // Approve handler
+  const handleApprove = async (listingId) => {
+    try {
+      await moderationService.approveListing(listingId);
+      // Remove the approved listing from the UI
+      setPendingListings((prev) => prev.filter((l) => l.id !== listingId));
+      setStats((prev) => ({
+        ...prev,
+        pendingListings: prev.pendingListings - 1
+      }));
+    } catch (error) {
+      // Optionally handle error (e.g., show a toast)
+      console.error('Failed to approve listing:', error);
+    }
+  };
 
   return (
     <ProtectedRoute adminOnly={true}>
@@ -127,7 +140,14 @@ export default function AdminDashboard() {
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${listing.price}</td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{listing.date}</td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            {/* Review button can stay or be removed */}
                             <button className="text-blue-600 hover:text-blue-900 mr-3">Review</button>
+                            <button
+                              className="text-green-600 hover:text-green-900"
+                              onClick={() => handleApprove(listing.id)}
+                            >
+                              Approve
+                            </button>
                           </td>
                         </tr>
                       ))}

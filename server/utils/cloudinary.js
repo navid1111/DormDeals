@@ -16,20 +16,16 @@ cloudinary.config({
  */
 const uploadImage = async (file, folder = 'dormdeals') => {
   try {
-    // Convert file to a readable stream
-    const fileStream = Buffer.isBuffer(file)
-      ? new Readable({
-          read() {
-            this.push(file);
-            this.push(null); // Signal end of stream
-          },
-        })
-      : new Readable({
-          read() {
-            this.push(file.buffer);
-            this.push(null); // Signal end of stream
-          },
-        });
+    if (!file || !file.buffer) {
+      throw new Error('File buffer missing. Make sure Multer is using memoryStorage and files are sent as multipart/form-data.');
+    }
+    // Always use file.buffer (Multer memory storage)
+    const fileStream = new Readable({
+      read() {
+        this.push(file.buffer);
+        this.push(null); // Signal end of stream
+      },
+    });
 
     // Upload to Cloudinary
     const result = await new Promise((resolve, reject) => {
@@ -37,11 +33,10 @@ const uploadImage = async (file, folder = 'dormdeals') => {
         { folder },
         (error, result) => {
           if (error) {
-            reject(new Error('Image upload failed'));
+            reject(new Error('Image upload failed: ' + error.message));
           } else resolve(result);
         }
       );
-
       fileStream.pipe(uploadStream);
     });
 
@@ -50,7 +45,7 @@ const uploadImage = async (file, folder = 'dormdeals') => {
       url: result.secure_url,
     };
   } catch (error) {
-    throw new Error('Failed to upload image');
+    throw new Error('Failed to upload image: ' + error.message);
   }
 };
 

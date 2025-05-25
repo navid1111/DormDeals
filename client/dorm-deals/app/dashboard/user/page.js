@@ -1,10 +1,11 @@
 'use client';
 
-import ProtectedRoute from '@/app/components/ProtectedRoute';
-import { useAuth } from '@/app/context/AuthContext';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
+import { listingService } from '../../../services/listingService';
+import ProtectedRoute from '../../components/ProtectedRoute';
+import { useAuth } from '../../context/AuthContext';
 
 export default function UserDashboard() {
   const { user, token } = useAuth();
@@ -23,20 +24,8 @@ export default function UserDashboard() {
       try {
         setLoading(true);
         
-        // Fetch user listings from the backend
-        const listingsResponse = await fetch('http://localhost:3000/api/v1/listings?status=all&limit=5', {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
-
-        if (!listingsResponse.ok) {
-          throw new Error('Failed to fetch listings');
-        }
-
-        const listingsData = await listingsResponse.json();
+        // Fetch user's own listings using the new method
+        const listingsData = await listingService.getMyListings({ limit: 5 });
         
         // Calculate stats based on real data
         const activeListingsCount = listingsData.data.filter(listing => listing.status === 'active').length;

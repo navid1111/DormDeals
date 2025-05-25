@@ -1,7 +1,7 @@
 'use client';
 
-import DashboardNav from '@/app/components/DashboardNav';
-import { useAuth } from '@/app/context/AuthContext';
+import DashboardNav from '../components/DashboardNav';
+import { useAuth } from '../context/AuthContext';
 
 export default function DashboardLayout({ children }) {
   const { user } = useAuth();
